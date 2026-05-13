@@ -1,0 +1,639 @@
+:root {
+  color-scheme: light;
+  --bg: #eef2f5;
+  --panel: #fbfcfd;
+  --panel-strong: #ffffff;
+  --ink: #16202a;
+  --muted: #687584;
+  --line: #d7dee6;
+  --line-strong: #b9c5d1;
+  --blue: #2e6fbd;
+  --teal: #007d76;
+  --green: #238452;
+  --amber: #a86600;
+  --red: #b63a3a;
+  --shadow: 0 16px 36px rgba(25, 37, 50, 0.11);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Bahnschrift", "Segoe UI", sans-serif;
+}
+
+button {
+  font: inherit;
+}
+
+.appShell {
+  display: grid;
+  grid-template-columns: 286px minmax(520px, 1fr) 318px;
+  height: 100%;
+  min-height: 680px;
+  overflow: hidden;
+}
+
+.sidePanel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px;
+  background: #f7f9fb;
+  border-color: var(--line);
+  overflow: auto;
+}
+
+.leftPanel {
+  border-right: 1px solid var(--line);
+}
+
+.rightPanel {
+  border-left: 1px solid var(--line);
+}
+
+.panelSection {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  padding: 14px;
+}
+
+.brandBlock {
+  display: grid;
+  grid-template-columns: 42px 1fr;
+  align-items: center;
+  gap: 12px;
+}
+
+.brandIcon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  color: #ffffff;
+  background: #244a76;
+}
+
+.brandBlock h1 {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+
+.brandBlock p {
+  margin: 4px 0 0;
+  max-width: 170px;
+  color: var(--muted);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.statusPill {
+  grid-column: 1 / -1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: max-content;
+  min-height: 26px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.statusPill.ready {
+  color: var(--green);
+  border-color: rgba(35, 132, 82, 0.28);
+  background: rgba(35, 132, 82, 0.08);
+}
+
+.statusPill.error {
+  color: var(--red);
+  border-color: rgba(182, 58, 58, 0.28);
+  background: rgba(182, 58, 58, 0.08);
+}
+
+.statusPill.loading {
+  color: var(--blue);
+  border-color: rgba(46, 111, 189, 0.24);
+  background: rgba(46, 111, 189, 0.08);
+}
+
+.sectionTitle {
+  margin-bottom: 10px;
+  color: #35414f;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.sectionTitle.small {
+  margin-top: 16px;
+  margin-bottom: 8px;
+}
+
+.metricGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.metricItem {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  grid-template-rows: auto auto;
+  min-height: 66px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--panel-strong);
+}
+
+.metricItem svg {
+  grid-row: span 2;
+  color: var(--teal);
+}
+
+.metricItem span {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.metricItem strong {
+  font-size: 22px;
+  line-height: 1.1;
+}
+
+.diagnosticsPanel {
+  flex: 1;
+  min-height: 160px;
+}
+
+.diagList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.diagItem {
+  padding: 9px;
+  border-left: 3px solid var(--line-strong);
+  border-radius: 6px;
+  background: var(--panel-strong);
+}
+
+.diagItem.warning {
+  border-color: var(--amber);
+}
+
+.diagItem.error {
+  border-color: var(--red);
+}
+
+.diagItem.info {
+  border-color: var(--blue);
+}
+
+.diagItem span {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.diagItem p {
+  margin: 3px 0 0;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.emptyState {
+  display: grid;
+  place-items: center;
+  min-height: 90px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.workspace {
+  display: grid;
+  grid-template-rows: 58px minmax(0, 1fr);
+  min-width: 0;
+  background: #e9eef3;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(10px);
+}
+
+.toolbarTitle {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.toolbarTitle span {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.toolbarTitle small {
+  max-width: 280px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.toolbarActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.iconButton,
+.canvasButton,
+.loadError button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 34px;
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  color: #213140;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.iconButton {
+  padding: 0 10px;
+}
+
+.iconButton:hover,
+.canvasButton:hover,
+.loadError button:hover {
+  border-color: var(--blue);
+  color: var(--blue);
+}
+
+.hiddenInput {
+  display: none;
+}
+
+.flowFrame {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  margin: 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f8fafc;
+  box-shadow: var(--shadow);
+}
+
+.flowActions {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 5;
+  display: flex;
+  gap: 8px;
+}
+
+.canvasButton {
+  width: 34px;
+  padding: 0;
+}
+
+.loadError {
+  position: absolute;
+  left: 50%;
+  top: 22px;
+  z-index: 10;
+  display: grid;
+  grid-template-columns: 18px auto auto auto;
+  align-items: center;
+  gap: 9px;
+  max-width: calc(100% - 40px);
+  transform: translateX(-50%);
+  padding: 9px 10px;
+  border: 1px solid rgba(182, 58, 58, 0.32);
+  border-radius: 8px;
+  color: var(--red);
+  background: #fff6f5;
+  box-shadow: 0 10px 24px rgba(70, 40, 40, 0.12);
+}
+
+.loadError span {
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.loadError button {
+  min-height: 28px;
+  padding: 0 10px;
+}
+
+.react-flow__minimap {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.moduleNode,
+.signalNode {
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 8px 22px rgba(20, 32, 44, 0.12);
+}
+
+.moduleNode {
+  width: 238px;
+  min-height: 150px;
+}
+
+.moduleNode.selected,
+.signalNode.selected {
+  outline: 2px solid rgba(46, 111, 189, 0.35);
+}
+
+.moduleHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 11px 12px 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.moduleHeader span {
+  min-width: 0;
+  overflow: hidden;
+  color: #121a24;
+  font-size: 14px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.moduleHeader strong {
+  padding: 3px 6px;
+  border-radius: 5px;
+  color: var(--blue);
+  background: rgba(46, 111, 189, 0.09);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.moduleMeta {
+  padding: 7px 12px 2px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.portColumns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 8px 10px 12px;
+}
+
+.portStack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.portStack.right {
+  align-items: stretch;
+}
+
+.portRow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-height: 24px;
+  padding: 3px 6px;
+  border-radius: 6px;
+  background: #f3f6f9;
+  color: #243342;
+  font-size: 11px;
+}
+
+.portRow.right {
+  flex-direction: row-reverse;
+}
+
+.portRow span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.portRow small {
+  color: var(--muted);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.portHandle {
+  width: 9px;
+  height: 9px;
+  border: 2px solid #ffffff;
+  background: var(--blue);
+}
+
+.signalNode {
+  position: relative;
+  width: 166px;
+  min-height: 70px;
+  padding: 10px 12px;
+  border-color: #abc2c0;
+}
+
+.signalName {
+  overflow: hidden;
+  color: #10201f;
+  font-size: 13px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.signalMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.signalMeta span,
+.signalMeta strong {
+  padding: 3px 6px;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.signalMeta span {
+  color: var(--teal);
+  background: rgba(0, 125, 118, 0.09);
+}
+
+.signalMeta strong {
+  color: var(--amber);
+  background: rgba(168, 102, 0, 0.1);
+}
+
+.netHandle {
+  width: 10px;
+  height: 10px;
+  border: 2px solid #ffffff;
+  background: var(--teal);
+}
+
+.detailPanel {
+  flex: 1;
+  min-height: 0;
+}
+
+.detailList {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.detailRow {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  min-height: 28px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.detailRow span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.detailRow strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.portTable {
+  margin-top: 6px;
+}
+
+.portTableRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 58px 52px;
+  gap: 8px;
+  align-items: center;
+  min-height: 30px;
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+}
+
+.portTableRow span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.portTableRow small {
+  color: var(--muted);
+}
+
+.portTableRow strong {
+  text-align: right;
+}
+
+.spin {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 1180px) {
+  .appShell {
+    grid-template-columns: 250px minmax(480px, 1fr);
+  }
+
+  .rightPanel {
+    display: none;
+  }
+}
+
+@media (max-width: 820px) {
+  .appShell {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(520px, 1fr);
+    overflow: auto;
+  }
+
+  .sidePanel {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .workspace {
+    min-height: 620px;
+  }
+
+  .toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .toolbarTitle small {
+    max-width: 200px;
+  }
+}

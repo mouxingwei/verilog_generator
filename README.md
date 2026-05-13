@@ -29,6 +29,26 @@ python -m verilog_generator.cli build `
 
 Generated files are written to `generated/`; intermediate IR and React Flow JSON are written to `build/`.
 
+## Basic GUI
+
+The first GUI is a read-only topology preview based on React Flow. It loads `web/public/graph.reactflow.json` by default and also supports importing a local React Flow JSON file from the toolbar.
+
+```powershell
+$env:PYTHONPATH='src'
+python -m verilog_generator.cli build `
+  --rtl examples/rtl `
+  --diagram examples/algo/algo.svg `
+  --signals examples/algo/fixed_signals.xlsx `
+  --mapping examples/algo/block_mapping.yaml `
+  --ports examples/algo/port_mapping.yaml `
+  --top top
+
+cd web
+npm install
+npm run sync:graph
+npm run dev
+```
+
 ## Individual commands
 
 ```powershell
@@ -42,4 +62,3 @@ python -m verilog_generator.cli generate-verilog build/design.yaml -o generated/
 python -m verilog_generator.cli syntax-check generated/*.v examples/rtl/*.v
 python -m verilog_generator.cli generate-reactflow build/design.yaml -o build/graph.reactflow.json
 ```
-

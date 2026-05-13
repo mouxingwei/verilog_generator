@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 from openpyxl import Workbook
@@ -6,6 +7,7 @@ from verilog_generator.excel_io import import_fixed_signals
 from verilog_generator.ir_merge import merge_designs
 from verilog_generator.mapping_io import import_mappings
 from verilog_generator.rtl_extract import import_verilog
+from verilog_generator.reactflow_emit import emit_reactflow
 from verilog_generator.svg_diagram_io import import_svg
 from verilog_generator.syntax_check import syntax_check
 from verilog_generator.validator import has_errors, validate_design
@@ -44,3 +46,12 @@ def test_end_to_end_generation(tmp_path):
 
     syntax = syntax_check([*generated, Path("examples/rtl/fir_filter.v")])
     assert syntax.returncode == 0, syntax.stderr
+
+    graph_path = tmp_path / "graph.reactflow.json"
+    emit_reactflow(design, graph_path)
+    graph = json.loads(graph_path.read_text(encoding="utf-8"))
+    node_ids = {node["id"] for node in graph["nodes"]}
+    assert graph["schemaVersion"] == "verilog-generator.reactflow.v1"
+    assert any(node["type"] == "signalNet" for node in graph["nodes"])
+    assert any(node["type"] == "moduleInstance" for node in graph["nodes"])
+    assert all(edge["source"] in node_ids and edge["target"] in node_ids for edge in graph["edges"])
