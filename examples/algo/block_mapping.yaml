@@ -1,0 +1,8 @@
+block_mappings:
+  - block_type: FIR
+    module: fir_filter
+    instance_prefix: u_
+    parameter_overrides:
+      DATA_W: "{signal_width:din}"
+      FRAC_W: "{signal_frac_width:din}"
+

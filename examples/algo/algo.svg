@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="240">
+  <g id="fir0" data-kind="block" data-name="fir0" data-block-type="FIR" data-hierarchy="top.u_dsp">
+    <rect x="240" y="80" width="120" height="60" fill="none" stroke="black"/>
+    <text x="260" y="115">FIR fir0</text>
+  </g>
+  <g id="c_sample_in" data-kind="connection" data-signal="sample_in" data-source-block="input" data-source-port="sample_in" data-target-block="fir0" data-target-port="din" data-hierarchy="top.u_dsp">
+    <line x1="40" y1="110" x2="240" y2="110" stroke="black"/>
+    <text x="110" y="100">sample_in</text>
+  </g>
+  <g id="c_clk" data-kind="connection" data-signal="clk" data-source-block="input" data-source-port="clk" data-target-block="fir0" data-target-port="clk" data-hierarchy="top.u_dsp">
+    <line x1="240" y1="40" x2="270" y2="80" stroke="black"/>
+    <text x="210" y="50">clk</text>
+  </g>
+  <g id="c_rst_n" data-kind="connection" data-signal="rst_n" data-source-block="input" data-source-port="rst_n" data-target-block="fir0" data-target-port="rst_n" data-hierarchy="top.u_dsp">
+    <line x1="300" y1="40" x2="300" y2="80" stroke="black"/>
+    <text x="310" y="50">rst_n</text>
+  </g>
+  <g id="c_filtered_out" data-kind="connection" data-signal="filtered_out" data-source-block="fir0" data-source-port="dout" data-target-block="output" data-target-port="filtered_out" data-hierarchy="top.u_dsp">
+    <line x1="360" y1="110" x2="560" y2="110" stroke="black"/>
+    <text x="410" y="100">filtered_out</text>
+  </g>
+</svg>

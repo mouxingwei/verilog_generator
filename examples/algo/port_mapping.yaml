@@ -1,0 +1,9 @@
+port_mappings:
+  - block_type: FIR
+    module: fir_filter
+    ports:
+      din: din
+      dout: dout
+      clk: clk
+      rst_n: rst_n
+

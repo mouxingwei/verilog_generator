@@ -1,0 +1,27 @@
+[project]
+name = "verilog-generator"
+version = "0.1.0"
+description = "Generate Verilog-2005 top-level structure code from RTL interfaces, diagrams, and spreadsheets."
+requires-python = ">=3.10"
+dependencies = [
+  "jinja2",
+  "openpyxl",
+  "pydantic",
+  "pyverilog",
+  "pyyaml",
+  "typer",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.scripts]
+vg = "verilog_generator.cli:main"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

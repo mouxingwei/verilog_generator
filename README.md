@@ -1,0 +1,45 @@
+# verilog_generator
+
+Generate Verilog-2005 top-level structure code from existing RTL module interfaces, Edraw SVG diagrams, fixed-point signal spreadsheets, and YAML mapping files.
+
+## First-phase flow
+
+```text
+Verilog-2005 RTL -> module/port/parameter IR
+Edraw SVG        -> blocks and signal connections
+Excel            -> fixed-point signal formats, such as s(11,1)
+YAML mappings    -> block-to-module and port-name mappings
+IR               -> multi-file Verilog .v output
+Icarus Verilog   -> syntax check
+React Flow JSON  -> read-only topology preview
+```
+
+## Example
+
+```powershell
+$env:PYTHONPATH='src'
+python -m verilog_generator.cli build `
+  --rtl examples/rtl `
+  --diagram examples/algo/algo.svg `
+  --signals examples/algo/fixed_signals.xlsx `
+  --mapping examples/algo/block_mapping.yaml `
+  --ports examples/algo/port_mapping.yaml `
+  --top top
+```
+
+Generated files are written to `generated/`; intermediate IR and React Flow JSON are written to `build/`.
+
+## Individual commands
+
+```powershell
+$env:PYTHONPATH='src'
+python -m verilog_generator.cli import-verilog examples/rtl/*.v -o build/modules.yaml
+python -m verilog_generator.cli import-algo-svg examples/algo/algo.svg --signals examples/algo/fixed_signals.xlsx -o build/algo.yaml
+python -m verilog_generator.cli import-mapping examples/algo/block_mapping.yaml --ports examples/algo/port_mapping.yaml -o build/mapping.yaml
+python -m verilog_generator.cli merge build/modules.yaml build/algo.yaml build/mapping.yaml -o build/design.yaml
+python -m verilog_generator.cli validate build/design.yaml
+python -m verilog_generator.cli generate-verilog build/design.yaml -o generated/
+python -m verilog_generator.cli syntax-check generated/*.v examples/rtl/*.v
+python -m verilog_generator.cli generate-reactflow build/design.yaml -o build/graph.reactflow.json
+```
+
