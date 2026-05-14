@@ -35,6 +35,8 @@ The first GUI is a read-only topology preview based on React Flow. It loads `web
 
 The GUI can import Verilog files into a browser-side module library. Imported modules can be added to the canvas as new submodule instances. This first GUI parser targets common Verilog-2005 module headers and uses the backend Pyverilog path for authoritative generation.
 
+The editor can also add signal nodes, connect module ports to signal nodes, move nodes on the canvas, and export the edited React Flow JSON for later processing.
+
 ```powershell
 $env:PYTHONPATH='src'
 python -m verilog_generator.cli build `

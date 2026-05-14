@@ -370,7 +370,7 @@ button {
 
 .workspace {
   display: grid;
-  grid-template-rows: 58px minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
   min-width: 0;
   background: #e9eef3;
 }
@@ -380,6 +380,7 @@ button {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  min-height: 58px;
   padding: 10px 14px;
   border-bottom: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.82);
@@ -409,6 +410,8 @@ button {
 .toolbarActions {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 8px;
 }
 

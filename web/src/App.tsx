@@ -3,7 +3,9 @@ import {
   Background,
   BackgroundVariant,
   Controls,
+  Connection,
   Edge,
+  EdgeChange,
   Handle,
   MarkerType,
   MiniMap,
@@ -12,6 +14,7 @@ import {
   NodeMouseHandler,
   Position,
   ReactFlow,
+  applyEdgeChanges,
   applyNodeChanges,
   useReactFlow
 } from "@xyflow/react";
@@ -27,7 +30,9 @@ import {
   Maximize2,
   Plus,
   RefreshCw,
-  Upload
+  Save,
+  Upload,
+  Waypoints
 } from "lucide-react";
 import {
   ImportedVerilogModule,
@@ -107,6 +112,13 @@ export default function App() {
     }));
   }, []);
 
+  const onEdgesChange = useCallback((changes: EdgeChange[]) => {
+    setGraph((previous) => {
+      const nextEdges = applyEdgeChanges(changes, previous.edges);
+      return refreshGraphSummary({ ...previous, edges: nextEdges });
+    });
+  }, []);
+
   const onNodeClick: NodeMouseHandler = useCallback((_, node) => {
     setSelection({ kind: "node", item: node });
   }, []);
@@ -181,6 +193,62 @@ export default function App() {
     }
   }, []);
 
+  const addSignalNode = useCallback(() => {
+    const fallbackName = nextSignalName(graph.nodes);
+    const rawName = window.prompt("Signal name", fallbackName);
+    if (rawName === null) {
+      return;
+    }
+    const signalName = sanitizeIdentifier(rawName.trim() || fallbackName);
+    let createdNode: Node | null = null;
+    setGraph((previous) => {
+      const uniqueName = uniqueSignalName(previous.nodes, signalName);
+      const nextNode: Node = {
+        id: `net:gui.${uniqueName}`,
+        type: "signalNet",
+        position: nextSignalPosition(previous.nodes),
+        data: {
+          label: uniqueName,
+          signal: uniqueName,
+          hierarchy: "gui",
+          width: 1,
+          signed: false,
+          frac_width: 0,
+          fixed_format: "u(1,0)",
+          imported: true
+        }
+      };
+      createdNode = nextNode;
+      return refreshGraphSummary({ ...previous, nodes: [...previous.nodes, nextNode] });
+    });
+    if (createdNode) {
+      setSelection({ kind: "node", item: createdNode });
+    }
+  }, [graph.nodes]);
+
+  const onConnect = useCallback((connection: Connection) => {
+    setGraph((previous) => {
+      const edge = createEditableEdge(connection, previous.nodes);
+      if (!edge || hasSameConnection(previous.edges, edge)) {
+        return previous;
+      }
+      return refreshGraphSummary({ ...previous, edges: [...previous.edges, edge] });
+    });
+  }, []);
+
+  const exportCurrentGraph = useCallback(() => {
+    const payload = prepareGraphExport(refreshGraphSummary(graph));
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `verilog-generator-graph-${timestampForFile()}.json`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+  }, [graph]);
+
   return (
     <div className="appShell">
       <aside className="sidePanel leftPanel">
@@ -199,8 +267,10 @@ export default function App() {
         <Toolbar
           status={status}
           sourceName={sourceName}
+          onAddSignal={addSignalNode}
           onUploadGraph={() => graphInputRef.current?.click()}
           onImportVerilog={() => verilogInputRef.current?.click()}
+          onExportGraph={exportCurrentGraph}
           onRefresh={loadDefaultGraph}
         />
         <input
@@ -238,9 +308,11 @@ export default function App() {
             minZoom={0.2}
             maxZoom={1.6}
             nodesDraggable
-            nodesConnectable={false}
+            nodesConnectable
             elementsSelectable
             onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
             onPaneClick={() => setSelection(null)}
             onNodeClick={onNodeClick}
             onEdgeClick={onEdgeClick}
@@ -409,14 +481,18 @@ function Diagnostics({ diagnostics }: { diagnostics: Diagnostic[] }) {
 function Toolbar({
   status,
   sourceName,
+  onAddSignal,
   onUploadGraph,
   onImportVerilog,
+  onExportGraph,
   onRefresh
 }: {
   status: "loading" | "ready" | "error";
   sourceName: string;
+  onAddSignal: () => void;
   onUploadGraph: () => void;
   onImportVerilog: () => void;
+  onExportGraph: () => void;
   onRefresh: () => void;
 }) {
   return (
@@ -427,6 +503,10 @@ function Toolbar({
         <small>{sourceName}</small>
       </div>
       <div className="toolbarActions">
+        <button className="iconButton" onClick={onAddSignal} title="Add signal">
+          <Waypoints size={17} />
+          <span>Signal</span>
+        </button>
         <button className="iconButton" onClick={onImportVerilog} title="Import Verilog">
           <FileCode2 size={17} />
           <span>RTL</span>
@@ -434,6 +514,10 @@ function Toolbar({
         <button className="iconButton" onClick={onUploadGraph} title="Import graph JSON">
           <Upload size={17} />
           <span>Graph</span>
+        </button>
+        <button className="iconButton" onClick={onExportGraph} title="Export graph JSON">
+          <Save size={17} />
+          <span>Export</span>
         </button>
         <button className="iconButton" onClick={onRefresh} title="Reload sample graph">
           <RefreshCw size={17} className={status === "loading" ? "spin" : ""} />
@@ -603,6 +687,117 @@ function normalizeEdge(edge: Edge): Edge {
   };
 }
 
+function createEditableEdge(connection: Connection, nodes: Node[]): Edge | null {
+  if (!connection.source || !connection.target) {
+    return null;
+  }
+
+  const sourceNode = nodes.find((node) => node.id === connection.source);
+  const targetNode = nodes.find((node) => node.id === connection.target);
+  if (!sourceNode || !targetNode) {
+    return null;
+  }
+
+  const sourceIsNet = sourceNode.type === "signalNet";
+  const targetIsNet = targetNode.type === "signalNet";
+  if (sourceIsNet === targetIsNet) {
+    return null;
+  }
+
+  const netNode = sourceIsNet ? sourceNode : targetNode;
+  const moduleNode = sourceIsNet ? targetNode : sourceNode;
+  const moduleData = moduleNode.data as Record<string, any>;
+  const netData = netNode.data as Record<string, any>;
+  const moduleHandle = sourceIsNet ? connection.targetHandle : connection.sourceHandle;
+  const direction = sourceIsNet ? "input" : "output";
+  const port = findPort(moduleData.ports, moduleHandle ?? "");
+  const signal = String(netData.signal ?? netData.label ?? netNode.id);
+  const edgeId = [
+    "edge",
+    sanitizeIdentifier(String(moduleData.hierarchy ?? "gui")),
+    sanitizeIdentifier(String(moduleData.label ?? moduleNode.id)),
+    sanitizeIdentifier(String(moduleHandle ?? "port")),
+    sanitizeIdentifier(signal)
+  ].join(":");
+
+  return {
+    id: edgeId,
+    source: connection.source,
+    target: connection.target,
+    sourceHandle: connection.sourceHandle,
+    targetHandle: connection.targetHandle,
+    type: "smoothstep",
+    animated: direction === "output",
+    markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16 },
+    data: {
+      signal,
+      hierarchy: netData.hierarchy ?? moduleData.hierarchy ?? "gui",
+      instance: moduleData.label,
+      module: moduleData.module,
+      port: moduleHandle,
+      direction,
+      port_width: port ? formatWidth(port) : undefined,
+      net_width: netData.width,
+      fixed_format: netData.fixed_format,
+      editable: true
+    }
+  };
+}
+
+function hasSameConnection(edges: Edge[], edge: Edge) {
+  return edges.some(
+    (item) =>
+      item.source === edge.source &&
+      item.target === edge.target &&
+      item.sourceHandle === edge.sourceHandle &&
+      item.targetHandle === edge.targetHandle
+  );
+}
+
+function findPort(ports: unknown, name: string) {
+  if (!Array.isArray(ports)) {
+    return undefined;
+  }
+  return ports.find((port) => port.name === name);
+}
+
+function refreshGraphSummary(graph: GraphPayload): GraphPayload {
+  return {
+    ...graph,
+    summary: {
+      ...(graph.summary ?? {}),
+      instances: countType(graph.nodes, "moduleInstance"),
+      nets: countType(graph.nodes, "signalNet"),
+      connections: graph.edges.length
+    }
+  };
+}
+
+function prepareGraphExport(graph: GraphPayload): GraphPayload {
+  return {
+    schemaVersion: graph.schemaVersion ?? "verilog-generator.reactflow.v1",
+    summary: graph.summary ?? {},
+    diagnostics: graph.diagnostics ?? [],
+    nodes: graph.nodes.map((node) => ({
+      id: node.id,
+      type: node.type,
+      position: node.position,
+      data: node.data
+    })),
+    edges: graph.edges.map((edge) => ({
+      id: edge.id,
+      source: edge.source,
+      target: edge.target,
+      sourceHandle: edge.sourceHandle,
+      targetHandle: edge.targetHandle,
+      type: edge.type,
+      animated: edge.animated,
+      markerEnd: edge.markerEnd,
+      data: edge.data
+    }))
+  };
+}
+
 function detailRows(data: Record<string, unknown>, keys: string[]) {
   return keys
     .filter((key) => data[key] !== undefined && data[key] !== null && data[key] !== "")
@@ -649,7 +844,44 @@ function nextModulePosition(nodes: Node[]) {
   };
 }
 
+function nextSignalName(nodes: Node[]) {
+  return uniqueSignalName(nodes, "sig_new");
+}
+
+function uniqueSignalName(nodes: Node[], baseName: string) {
+  const base = sanitizeIdentifier(baseName);
+  const used = new Set(
+    nodes
+      .filter((node) => node.type === "signalNet")
+      .map((node) => String((node.data as any)?.signal ?? (node.data as any)?.label ?? ""))
+  );
+  if (!used.has(base)) {
+    return base;
+  }
+  let index = 1;
+  while (used.has(`${base}_${index}`)) {
+    index += 1;
+  }
+  return `${base}_${index}`;
+}
+
+function nextSignalPosition(nodes: Node[]) {
+  const signalCount = countType(nodes, "signalNet");
+  return {
+    x: 72 + 210 * (signalCount % 3),
+    y: 520 + 110 * Math.floor(signalCount / 3)
+  };
+}
+
 function sanitizeIdentifier(value: string) {
   const sanitized = value.replace(/\W+/g, "_").replace(/^(\d)/, "_$1");
   return sanitized || "module";
+}
+
+function timestampForFile() {
+  return new Date()
+    .toISOString()
+    .replace(/[:.]/g, "-")
+    .replace("T", "_")
+    .slice(0, 19);
 }
