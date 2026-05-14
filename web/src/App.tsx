@@ -93,7 +93,7 @@ export default function App() {
       setStatus("ready");
     } catch (err) {
       setGraph(emptyGraph);
-      setError(err instanceof Error ? err.message : "Graph load failed");
+      setError(err instanceof Error ? err.message : "图数据加载失败");
       setStatus("error");
     }
   }, []);
@@ -138,7 +138,7 @@ export default function App() {
       setSelection(null);
       setStatus("ready");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "JSON parse failed");
+      setError(err instanceof Error ? err.message : "JSON 解析失败");
       setStatus("error");
     }
   }, []);
@@ -156,7 +156,7 @@ export default function App() {
     }
 
     setModuleLibrary((previous) => mergeModuleLibrary(previous, parsed));
-    setModuleImportMessage(`${parsed.length} module(s) imported from ${fileList.length} file(s)`);
+    setModuleImportMessage(`已从 ${fileList.length} 个文件导入 ${parsed.length} 个模块`);
   }, []);
 
   const addModuleInstance = useCallback((moduleDef: ImportedVerilogModule) => {
@@ -195,7 +195,7 @@ export default function App() {
 
   const addSignalNode = useCallback(() => {
     const fallbackName = nextSignalName(graph.nodes);
-    const rawName = window.prompt("Signal name", fallbackName);
+    const rawName = window.prompt("信号名", fallbackName);
     if (rawName === null) {
       return;
     }
@@ -297,7 +297,7 @@ export default function App() {
             event.currentTarget.value = "";
           }}
         />
-        <section className="flowFrame" aria-label="Verilog topology">
+        <section className="flowFrame" aria-label="Verilog 拓扑">
           {status === "error" && <LoadError error={error} onRetry={loadDefaultGraph} />}
           <ReactFlow
             nodes={nodes}
@@ -347,7 +347,7 @@ function BrandBlock({
         <Cpu size={22} />
       </div>
       <div>
-        <h1>Verilog Generator</h1>
+        <h1>Verilog 生成器</h1>
         <p>{sourceName}</p>
       </div>
       <StatusPill status={status} error={error} />
@@ -366,7 +366,7 @@ function StatusPill({
     return (
       <span className="statusPill ready">
         <CheckCircle2 size={14} />
-        Ready
+        就绪
       </span>
     );
   }
@@ -374,25 +374,25 @@ function StatusPill({
     return (
       <span className="statusPill error" title={error ?? ""}>
         <AlertTriangle size={14} />
-        Error
+        错误
       </span>
     );
   }
-  return <span className="statusPill loading">Loading</span>;
+  return <span className="statusPill loading">加载中</span>;
 }
 
 function MetricGrid({ graph, moduleLibrary }: { graph: GraphPayload; moduleLibrary: ImportedVerilogModule[] }) {
   const summary = graph.summary ?? {};
   const metrics = [
-    { label: "Modules", value: summary.modules ?? 0, icon: Boxes },
-    { label: "Instances", value: summary.instances ?? countType(graph.nodes, "moduleInstance"), icon: Cpu },
-    { label: "Nets", value: summary.nets ?? countType(graph.nodes, "signalNet"), icon: GitBranch },
-    { label: "Library", value: moduleLibrary.length, icon: Library }
+    { label: "模块", value: summary.modules ?? 0, icon: Boxes },
+    { label: "实例", value: summary.instances ?? countType(graph.nodes, "moduleInstance"), icon: Cpu },
+    { label: "信号", value: summary.nets ?? countType(graph.nodes, "signalNet"), icon: GitBranch },
+    { label: "库模块", value: moduleLibrary.length, icon: Library }
   ];
 
   return (
     <section className="panelSection">
-      <div className="sectionTitle">Project</div>
+      <div className="sectionTitle">工程</div>
       <div className="metricGrid">
         {metrics.map(({ label, value, icon: Icon }) => (
           <div className="metricItem" key={label}>
@@ -420,29 +420,29 @@ function ModuleLibrary({
   return (
     <section className="panelSection moduleLibraryPanel">
       <div className="moduleLibraryHeader">
-        <div className="sectionTitle">Module Library</div>
-        <button className="compactButton" onClick={onImport} title="Import Verilog">
+        <div className="sectionTitle">模块库</div>
+        <button className="compactButton" onClick={onImport} title="导入 Verilog">
           <FileCode2 size={15} />
           <span>RTL</span>
         </button>
       </div>
       {importMessage && <div className="libraryMessage">{importMessage}</div>}
       {modules.length === 0 ? (
-        <div className="emptyState">No modules loaded</div>
+        <div className="emptyState">未导入模块</div>
       ) : (
         <div className="moduleCatalog">
           {modules.map((moduleDef) => (
             <div className="moduleCatalogItem" key={`${moduleDef.source}:${moduleDef.name}`}>
               <div className="moduleCatalogTitle">
                 <strong>{moduleDef.name}</strong>
-                <button className="moduleAddButton" onClick={() => onAdd(moduleDef)} title="Add submodule">
+                <button className="moduleAddButton" onClick={() => onAdd(moduleDef)} title="添加子模块">
                   <Plus size={15} />
                 </button>
               </div>
               <div className="moduleCatalogMeta">{moduleDef.source}</div>
               <div className="moduleStats">
-                <span>{moduleDef.ports.length} ports</span>
-                <span>{moduleDef.parameters.length} params</span>
+                <span>{moduleDef.ports.length} 端口</span>
+                <span>{moduleDef.parameters.length} 参数</span>
               </div>
               <div className="modulePreview">
                 {moduleDef.ports.slice(0, 6).map((port) => (
@@ -461,9 +461,9 @@ function Diagnostics({ diagnostics }: { diagnostics: Diagnostic[] }) {
   const visible = diagnostics.slice(0, 8);
   return (
     <section className="panelSection diagnosticsPanel">
-      <div className="sectionTitle">Diagnostics</div>
+      <div className="sectionTitle">诊断</div>
       {visible.length === 0 ? (
-        <div className="emptyState">No diagnostics</div>
+        <div className="emptyState">暂无诊断</div>
       ) : (
         <div className="diagList">
           {visible.map((diag, index) => (
@@ -499,29 +499,29 @@ function Toolbar({
     <header className="toolbar">
       <div className="toolbarTitle">
         <GitBranch size={18} />
-        <span>Topology Editor</span>
+        <span>拓扑编辑器</span>
         <small>{sourceName}</small>
       </div>
       <div className="toolbarActions">
-        <button className="iconButton" onClick={onAddSignal} title="Add signal">
+        <button className="iconButton" onClick={onAddSignal} title="添加信号">
           <Waypoints size={17} />
-          <span>Signal</span>
+          <span>信号</span>
         </button>
-        <button className="iconButton" onClick={onImportVerilog} title="Import Verilog">
+        <button className="iconButton" onClick={onImportVerilog} title="导入 Verilog">
           <FileCode2 size={17} />
           <span>RTL</span>
         </button>
-        <button className="iconButton" onClick={onUploadGraph} title="Import graph JSON">
+        <button className="iconButton" onClick={onUploadGraph} title="导入图 JSON">
           <Upload size={17} />
-          <span>Graph</span>
+          <span>图</span>
         </button>
-        <button className="iconButton" onClick={onExportGraph} title="Export graph JSON">
+        <button className="iconButton" onClick={onExportGraph} title="导出图 JSON">
           <Save size={17} />
-          <span>Export</span>
+          <span>导出</span>
         </button>
-        <button className="iconButton" onClick={onRefresh} title="Reload sample graph">
+        <button className="iconButton" onClick={onRefresh} title="重新加载示例图">
           <RefreshCw size={17} className={status === "loading" ? "spin" : ""} />
-          <span>Reload</span>
+          <span>重载</span>
         </button>
       </div>
     </header>
@@ -532,7 +532,7 @@ function FlowActions() {
   const { fitView } = useReactFlow();
   return (
     <div className="flowActions">
-      <button className="canvasButton" onClick={() => fitView({ padding: 0.18 })} title="Fit view">
+      <button className="canvasButton" onClick={() => fitView({ padding: 0.18 })} title="适配视图">
         <Maximize2 size={16} />
       </button>
     </div>
@@ -543,9 +543,9 @@ function LoadError({ error, onRetry }: { error: string | null; onRetry: () => vo
   return (
     <div className="loadError">
       <AlertTriangle size={18} />
-      <strong>Graph not loaded</strong>
-      <span>{error ?? "unknown error"}</span>
-      <button onClick={onRetry}>Retry</button>
+      <strong>图数据未加载</strong>
+      <span>{error ?? "未知错误"}</span>
+      <button onClick={onRetry}>重试</button>
     </div>
   );
 }
@@ -601,7 +601,7 @@ function SignalNetNode({ data, selected }: any) {
       <div className="signalName">{data.label}</div>
       <div className="signalMeta">
         <span>{data.fixed_format ?? `${data.width ?? 1}b`}</span>
-        {data.port_direction && <strong>{data.port_direction}</strong>}
+        {data.port_direction && <strong>{formatDirection(String(data.port_direction))}</strong>}
       </div>
     </div>
   );
@@ -611,8 +611,8 @@ function SelectionDetails({ selection }: { selection: Selection }) {
   if (!selection) {
     return (
       <section className="panelSection detailPanel">
-        <div className="sectionTitle">Details</div>
-        <div className="emptyState">Nothing selected</div>
+        <div className="sectionTitle">详情</div>
+        <div className="emptyState">未选择对象</div>
       </section>
     );
   }
@@ -625,20 +625,20 @@ function SelectionDetails({ selection }: { selection: Selection }) {
 
   return (
     <section className="panelSection detailPanel">
-      <div className="sectionTitle">{selection.kind === "node" ? "Node" : "Edge"}</div>
+      <div className="sectionTitle">{selection.kind === "node" ? "节点" : "连线"}</div>
       <div className="detailList">
-        <DetailRow label="id" value={selection.item.id} />
+        <DetailRow label="ID" value={selection.item.id} />
         {fields.map(([label, value]) => (
-          <DetailRow key={label} label={label} value={value} />
+          <DetailRow key={label} label={fieldLabel(label)} value={formatDetailValue(label, value)} />
         ))}
       </div>
       {selection.kind === "node" && Array.isArray(data.ports) && (
         <div className="portTable">
-          <div className="sectionTitle small">Ports</div>
+          <div className="sectionTitle small">端口</div>
           {(data.ports as ImportedVerilogPort[]).map((port) => (
             <div className="portTableRow" key={port.name}>
               <span>{port.name}</span>
-              <small>{port.direction}</small>
+              <small>{formatDirection(port.direction)}</small>
               <strong>{formatWidth(port)}</strong>
             </div>
           ))}
@@ -655,6 +655,39 @@ function DetailRow({ label, value }: { label: string; value: unknown }) {
       <strong>{String(value)}</strong>
     </div>
   );
+}
+
+function fieldLabel(label: string) {
+  const labels: Record<string, string> = {
+    label: "名称",
+    module: "模块",
+    signal: "信号",
+    hierarchy: "层级",
+    block: "框图块",
+    block_type: "块类型",
+    source: "来源",
+    fixed_format: "定点格式",
+    width: "位宽",
+    signed: "有符号",
+    frac_width: "小数位",
+    port_direction: "端口方向",
+    instance: "实例",
+    port: "端口",
+    direction: "方向",
+    port_width: "端口位宽",
+    net_width: "信号位宽"
+  };
+  return labels[label] ?? label;
+}
+
+function formatDetailValue(label: string, value: unknown) {
+  if (label === "direction" || label === "port_direction") {
+    return formatDirection(String(value));
+  }
+  if (typeof value === "boolean") {
+    return value ? "是" : "否";
+  }
+  return value;
 }
 
 function normalizeGraph(payload: GraphPayload): GraphPayload {
@@ -816,6 +849,15 @@ function formatWidth(port: { width?: number; width_expr?: string }) {
     return port.width_expr;
   }
   return "1b";
+}
+
+function formatDirection(direction: string) {
+  const labels: Record<string, string> = {
+    input: "输入",
+    output: "输出",
+    inout: "双向"
+  };
+  return labels[direction] ?? direction;
 }
 
 function mergeModuleLibrary(previous: ImportedVerilogModule[], incoming: ImportedVerilogModule[]) {
