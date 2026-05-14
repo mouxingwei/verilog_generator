@@ -33,6 +33,8 @@ Generated files are written to `generated/`; intermediate IR and React Flow JSON
 
 The first GUI is a read-only topology preview based on React Flow. It loads `web/public/graph.reactflow.json` by default and also supports importing a local React Flow JSON file from the toolbar.
 
+The GUI can import Verilog files into a browser-side module library. Imported modules can be added to the canvas as new submodule instances. This first GUI parser targets common Verilog-2005 module headers and uses the backend Pyverilog path for authoritative generation.
+
 ```powershell
 $env:PYTHONPATH='src'
 python -m verilog_generator.cli build `

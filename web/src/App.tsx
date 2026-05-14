@@ -8,9 +8,11 @@ import {
   MarkerType,
   MiniMap,
   Node,
+  NodeChange,
   NodeMouseHandler,
   Position,
   ReactFlow,
+  applyNodeChanges,
   useReactFlow
 } from "@xyflow/react";
 import {
@@ -18,12 +20,20 @@ import {
   Boxes,
   CheckCircle2,
   Cpu,
+  FileCode2,
   FileJson,
   GitBranch,
+  Library,
   Maximize2,
+  Plus,
   RefreshCw,
   Upload
 } from "lucide-react";
+import {
+  ImportedVerilogModule,
+  ImportedVerilogPort,
+  parseVerilogModules
+} from "./verilogModuleParser";
 
 type GraphPayload = {
   schemaVersion?: string;
@@ -53,12 +63,15 @@ const nodeTypes = {
 };
 
 export default function App() {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const graphInputRef = useRef<HTMLInputElement>(null);
+  const verilogInputRef = useRef<HTMLInputElement>(null);
   const [graph, setGraph] = useState<GraphPayload>(emptyGraph);
   const [sourceName, setSourceName] = useState("graph.reactflow.json");
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [error, setError] = useState<string | null>(null);
   const [selection, setSelection] = useState<Selection>(null);
+  const [moduleLibrary, setModuleLibrary] = useState<ImportedVerilogModule[]>([]);
+  const [moduleImportMessage, setModuleImportMessage] = useState("");
 
   const loadDefaultGraph = useCallback(async () => {
     setStatus("loading");
@@ -75,17 +88,24 @@ export default function App() {
       setStatus("ready");
     } catch (err) {
       setGraph(emptyGraph);
-      setError(err instanceof Error ? err.message : "无法加载图数据");
+      setError(err instanceof Error ? err.message : "Graph load failed");
       setStatus("error");
     }
   }, []);
 
   useEffect(() => {
-    loadDefaultGraph();
+    void loadDefaultGraph();
   }, [loadDefaultGraph]);
 
   const nodes = useMemo(() => graph.nodes.map(normalizeNode), [graph.nodes]);
   const edges = useMemo(() => graph.edges.map(normalizeEdge), [graph.edges]);
+
+  const onNodesChange = useCallback((changes: NodeChange[]) => {
+    setGraph((previous) => ({
+      ...previous,
+      nodes: applyNodeChanges(changes, previous.nodes)
+    }));
+  }, []);
 
   const onNodeClick: NodeMouseHandler = useCallback((_, node) => {
     setSelection({ kind: "node", item: node });
@@ -95,7 +115,7 @@ export default function App() {
     setSelection({ kind: "edge", item: edge });
   }, []);
 
-  const loadLocalFile = useCallback(async (file: File) => {
+  const loadLocalGraphFile = useCallback(async (file: File) => {
     setStatus("loading");
     setError(null);
     try {
@@ -106,8 +126,58 @@ export default function App() {
       setSelection(null);
       setStatus("ready");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "JSON 解析失败");
+      setError(err instanceof Error ? err.message : "JSON parse failed");
       setStatus("error");
+    }
+  }, []);
+
+  const importVerilogFiles = useCallback(async (files: FileList | null) => {
+    const fileList = Array.from(files ?? []);
+    if (fileList.length === 0) {
+      return;
+    }
+
+    const parsed: ImportedVerilogModule[] = [];
+    for (const file of fileList) {
+      const text = await file.text();
+      parsed.push(...parseVerilogModules(text, file.name));
+    }
+
+    setModuleLibrary((previous) => mergeModuleLibrary(previous, parsed));
+    setModuleImportMessage(`${parsed.length} module(s) imported from ${fileList.length} file(s)`);
+  }, []);
+
+  const addModuleInstance = useCallback((moduleDef: ImportedVerilogModule) => {
+    let createdNode: Node | null = null;
+    setGraph((previous) => {
+      const instanceName = nextInstanceName(previous.nodes, moduleDef.name);
+      const nextNode: Node = {
+        id: `instance:gui.${instanceName}`,
+        type: "moduleInstance",
+        position: nextModulePosition(previous.nodes),
+        data: {
+          label: instanceName,
+          module: moduleDef.name,
+          hierarchy: "gui",
+          block_type: "imported",
+          source: moduleDef.source,
+          imported: true,
+          parameters: Object.fromEntries(moduleDef.parameters.map((param) => [param.name, param.default ?? ""])),
+          ports: moduleDef.ports
+        }
+      };
+      createdNode = nextNode;
+      return {
+        ...previous,
+        nodes: [...previous.nodes, nextNode],
+        summary: {
+          ...(previous.summary ?? {}),
+          instances: countType([...previous.nodes, nextNode], "moduleInstance")
+        }
+      };
+    });
+    if (createdNode) {
+      setSelection({ kind: "node", item: createdNode });
     }
   }, []);
 
@@ -115,7 +185,13 @@ export default function App() {
     <div className="appShell">
       <aside className="sidePanel leftPanel">
         <BrandBlock status={status} sourceName={sourceName} error={error} />
-        <MetricGrid graph={graph} />
+        <MetricGrid graph={graph} moduleLibrary={moduleLibrary} />
+        <ModuleLibrary
+          modules={moduleLibrary}
+          importMessage={moduleImportMessage}
+          onImport={() => verilogInputRef.current?.click()}
+          onAdd={addModuleInstance}
+        />
         <Diagnostics diagnostics={graph.diagnostics ?? []} />
       </aside>
 
@@ -123,19 +199,31 @@ export default function App() {
         <Toolbar
           status={status}
           sourceName={sourceName}
-          onUpload={() => inputRef.current?.click()}
+          onUploadGraph={() => graphInputRef.current?.click()}
+          onImportVerilog={() => verilogInputRef.current?.click()}
           onRefresh={loadDefaultGraph}
         />
         <input
-          ref={inputRef}
+          ref={graphInputRef}
           className="hiddenInput"
           type="file"
           accept="application/json,.json"
           onChange={(event) => {
             const file = event.target.files?.[0];
             if (file) {
-              void loadLocalFile(file);
+              void loadLocalGraphFile(file);
             }
+            event.currentTarget.value = "";
+          }}
+        />
+        <input
+          ref={verilogInputRef}
+          className="hiddenInput"
+          type="file"
+          accept=".v,.vh,.sv,.svh,text/plain"
+          multiple
+          onChange={(event) => {
+            void importVerilogFiles(event.target.files);
             event.currentTarget.value = "";
           }}
         />
@@ -149,9 +237,10 @@ export default function App() {
             fitViewOptions={{ padding: 0.18 }}
             minZoom={0.2}
             maxZoom={1.6}
-            nodesDraggable={false}
+            nodesDraggable
             nodesConnectable={false}
             elementsSelectable
+            onNodesChange={onNodesChange}
             onPaneClick={() => setSelection(null)}
             onNodeClick={onNodeClick}
             onEdgeClick={onEdgeClick}
@@ -220,18 +309,18 @@ function StatusPill({
   return <span className="statusPill loading">Loading</span>;
 }
 
-function MetricGrid({ graph }: { graph: GraphPayload }) {
+function MetricGrid({ graph, moduleLibrary }: { graph: GraphPayload; moduleLibrary: ImportedVerilogModule[] }) {
   const summary = graph.summary ?? {};
   const metrics = [
     { label: "Modules", value: summary.modules ?? 0, icon: Boxes },
     { label: "Instances", value: summary.instances ?? countType(graph.nodes, "moduleInstance"), icon: Cpu },
     { label: "Nets", value: summary.nets ?? countType(graph.nodes, "signalNet"), icon: GitBranch },
-    { label: "Edges", value: summary.connections ?? graph.edges.length, icon: FileJson }
+    { label: "Library", value: moduleLibrary.length, icon: Library }
   ];
 
   return (
     <section className="panelSection">
-      <div className="sectionTitle">工程摘要</div>
+      <div className="sectionTitle">Project</div>
       <div className="metricGrid">
         {metrics.map(({ label, value, icon: Icon }) => (
           <div className="metricItem" key={label}>
@@ -245,11 +334,62 @@ function MetricGrid({ graph }: { graph: GraphPayload }) {
   );
 }
 
+function ModuleLibrary({
+  modules,
+  importMessage,
+  onImport,
+  onAdd
+}: {
+  modules: ImportedVerilogModule[];
+  importMessage: string;
+  onImport: () => void;
+  onAdd: (moduleDef: ImportedVerilogModule) => void;
+}) {
+  return (
+    <section className="panelSection moduleLibraryPanel">
+      <div className="moduleLibraryHeader">
+        <div className="sectionTitle">Module Library</div>
+        <button className="compactButton" onClick={onImport} title="Import Verilog">
+          <FileCode2 size={15} />
+          <span>RTL</span>
+        </button>
+      </div>
+      {importMessage && <div className="libraryMessage">{importMessage}</div>}
+      {modules.length === 0 ? (
+        <div className="emptyState">No modules loaded</div>
+      ) : (
+        <div className="moduleCatalog">
+          {modules.map((moduleDef) => (
+            <div className="moduleCatalogItem" key={`${moduleDef.source}:${moduleDef.name}`}>
+              <div className="moduleCatalogTitle">
+                <strong>{moduleDef.name}</strong>
+                <button className="moduleAddButton" onClick={() => onAdd(moduleDef)} title="Add submodule">
+                  <Plus size={15} />
+                </button>
+              </div>
+              <div className="moduleCatalogMeta">{moduleDef.source}</div>
+              <div className="moduleStats">
+                <span>{moduleDef.ports.length} ports</span>
+                <span>{moduleDef.parameters.length} params</span>
+              </div>
+              <div className="modulePreview">
+                {moduleDef.ports.slice(0, 6).map((port) => (
+                  <span key={port.name}>{port.name}</span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 function Diagnostics({ diagnostics }: { diagnostics: Diagnostic[] }) {
   const visible = diagnostics.slice(0, 8);
   return (
     <section className="panelSection diagnosticsPanel">
-      <div className="sectionTitle">诊断</div>
+      <div className="sectionTitle">Diagnostics</div>
       {visible.length === 0 ? (
         <div className="emptyState">No diagnostics</div>
       ) : (
@@ -269,29 +409,35 @@ function Diagnostics({ diagnostics }: { diagnostics: Diagnostic[] }) {
 function Toolbar({
   status,
   sourceName,
-  onUpload,
+  onUploadGraph,
+  onImportVerilog,
   onRefresh
 }: {
   status: "loading" | "ready" | "error";
   sourceName: string;
-  onUpload: () => void;
+  onUploadGraph: () => void;
+  onImportVerilog: () => void;
   onRefresh: () => void;
 }) {
   return (
     <header className="toolbar">
       <div className="toolbarTitle">
         <GitBranch size={18} />
-        <span>Topology Preview</span>
+        <span>Topology Editor</span>
         <small>{sourceName}</small>
       </div>
       <div className="toolbarActions">
-        <button className="iconButton" onClick={onUpload} title="加载本地 JSON">
-          <Upload size={17} />
-          <span>导入</span>
+        <button className="iconButton" onClick={onImportVerilog} title="Import Verilog">
+          <FileCode2 size={17} />
+          <span>RTL</span>
         </button>
-        <button className="iconButton" onClick={onRefresh} title="重新加载示例图">
+        <button className="iconButton" onClick={onUploadGraph} title="Import graph JSON">
+          <Upload size={17} />
+          <span>Graph</span>
+        </button>
+        <button className="iconButton" onClick={onRefresh} title="Reload sample graph">
           <RefreshCw size={17} className={status === "loading" ? "spin" : ""} />
-          <span>刷新</span>
+          <span>Reload</span>
         </button>
       </div>
     </header>
@@ -302,7 +448,7 @@ function FlowActions() {
   const { fitView } = useReactFlow();
   return (
     <div className="flowActions">
-      <button className="canvasButton" onClick={() => fitView({ padding: 0.18 })} title="适配视图">
+      <button className="canvasButton" onClick={() => fitView({ padding: 0.18 })} title="Fit view">
         <Maximize2 size={16} />
       </button>
     </div>
@@ -313,7 +459,7 @@ function LoadError({ error, onRetry }: { error: string | null; onRetry: () => vo
   return (
     <div className="loadError">
       <AlertTriangle size={18} />
-      <strong>图数据未加载</strong>
+      <strong>Graph not loaded</strong>
       <span>{error ?? "unknown error"}</span>
       <button onClick={onRetry}>Retry</button>
     </div>
@@ -322,8 +468,8 @@ function LoadError({ error, onRetry }: { error: string | null; onRetry: () => vo
 
 function ModuleInstanceNode({ data, selected }: any) {
   const ports = Array.isArray(data.ports) ? data.ports : [];
-  const inputPorts = ports.filter((port: any) => port.direction !== "output");
-  const outputPorts = ports.filter((port: any) => port.direction === "output");
+  const inputPorts = ports.filter((port: ImportedVerilogPort) => port.direction !== "output");
+  const outputPorts = ports.filter((port: ImportedVerilogPort) => port.direction === "output");
   return (
     <div className={`moduleNode ${selected ? "selected" : ""}`}>
       <div className="moduleHeader">
@@ -333,12 +479,12 @@ function ModuleInstanceNode({ data, selected }: any) {
       <div className="moduleMeta">{data.hierarchy}</div>
       <div className="portColumns">
         <div className="portStack">
-          {inputPorts.map((port: any) => (
+          {inputPorts.map((port: ImportedVerilogPort) => (
             <PortRow port={port} key={`in-${port.name}`} side="left" />
           ))}
         </div>
         <div className="portStack right">
-          {outputPorts.map((port: any) => (
+          {outputPorts.map((port: ImportedVerilogPort) => (
             <PortRow port={port} key={`out-${port.name}`} side="right" />
           ))}
         </div>
@@ -347,7 +493,7 @@ function ModuleInstanceNode({ data, selected }: any) {
   );
 }
 
-function PortRow({ port, side }: { port: any; side: "left" | "right" }) {
+function PortRow({ port, side }: { port: ImportedVerilogPort; side: "left" | "right" }) {
   const isOutput = side === "right";
   return (
     <div className={`portRow ${side}`}>
@@ -381,7 +527,7 @@ function SelectionDetails({ selection }: { selection: Selection }) {
   if (!selection) {
     return (
       <section className="panelSection detailPanel">
-        <div className="sectionTitle">详情</div>
+        <div className="sectionTitle">Details</div>
         <div className="emptyState">Nothing selected</div>
       </section>
     );
@@ -390,12 +536,12 @@ function SelectionDetails({ selection }: { selection: Selection }) {
   const data = (selection.item.data ?? {}) as Record<string, unknown>;
   const fields =
     selection.kind === "node"
-      ? detailRows(data, ["label", "module", "signal", "hierarchy", "block", "block_type", "fixed_format", "width", "signed", "frac_width", "port_direction"])
+      ? detailRows(data, ["label", "module", "signal", "hierarchy", "block", "block_type", "source", "fixed_format", "width", "signed", "frac_width", "port_direction"])
       : detailRows(data, ["signal", "hierarchy", "instance", "module", "port", "direction", "port_width", "net_width", "fixed_format"]);
 
   return (
     <section className="panelSection detailPanel">
-      <div className="sectionTitle">{selection.kind === "node" ? "节点详情" : "连线详情"}</div>
+      <div className="sectionTitle">{selection.kind === "node" ? "Node" : "Edge"}</div>
       <div className="detailList">
         <DetailRow label="id" value={selection.item.id} />
         {fields.map(([label, value]) => (
@@ -404,8 +550,8 @@ function SelectionDetails({ selection }: { selection: Selection }) {
       </div>
       {selection.kind === "node" && Array.isArray(data.ports) && (
         <div className="portTable">
-          <div className="sectionTitle small">端口</div>
-          {(data.ports as any[]).map((port) => (
+          <div className="sectionTitle small">Ports</div>
+          {(data.ports as ImportedVerilogPort[]).map((port) => (
             <div className="portTableRow" key={port.name}>
               <span>{port.name}</span>
               <small>{port.direction}</small>
@@ -440,7 +586,7 @@ function normalizeGraph(payload: GraphPayload): GraphPayload {
 function normalizeNode(node: Node): Node {
   return {
     ...node,
-    draggable: false,
+    draggable: true,
     selectable: true
   };
 }
@@ -467,7 +613,7 @@ function countType(nodes: Node[], type: string) {
   return nodes.filter((node) => node.type === type).length;
 }
 
-function formatWidth(port: any) {
+function formatWidth(port: { width?: number; width_expr?: string }) {
   if (port.width !== undefined && port.width !== null) {
     return `${port.width}b`;
   }
@@ -475,4 +621,35 @@ function formatWidth(port: any) {
     return port.width_expr;
   }
   return "1b";
+}
+
+function mergeModuleLibrary(previous: ImportedVerilogModule[], incoming: ImportedVerilogModule[]) {
+  const byKey = new Map(previous.map((moduleDef) => [`${moduleDef.source}:${moduleDef.name}`, moduleDef]));
+  for (const moduleDef of incoming) {
+    byKey.set(`${moduleDef.source}:${moduleDef.name}`, moduleDef);
+  }
+  return Array.from(byKey.values()).sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function nextInstanceName(nodes: Node[], moduleName: string) {
+  const base = `u_${sanitizeIdentifier(moduleName)}`;
+  const used = new Set(nodes.map((node) => String((node.data as any)?.label ?? "")));
+  let index = 0;
+  while (used.has(`${base}_${index}`)) {
+    index += 1;
+  }
+  return `${base}_${index}`;
+}
+
+function nextModulePosition(nodes: Node[]) {
+  const moduleCount = countType(nodes, "moduleInstance");
+  return {
+    x: 360 + 280 * (moduleCount % 3),
+    y: 420 + 190 * Math.floor(moduleCount / 3)
+  };
+}
+
+function sanitizeIdentifier(value: string) {
+  const sanitized = value.replace(/\W+/g, "_").replace(/^(\d)/, "_$1");
+  return sanitized || "module";
 }

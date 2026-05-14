@@ -38,7 +38,7 @@ button {
 
 .appShell {
   display: grid;
-  grid-template-columns: 286px minmax(520px, 1fr) 318px;
+  grid-template-columns: 320px minmax(520px, 1fr) 318px;
   height: 100%;
   min-height: 680px;
   overflow: hidden;
@@ -181,6 +181,138 @@ button {
 .metricItem strong {
   font-size: 22px;
   line-height: 1.1;
+}
+
+.moduleLibraryPanel {
+  min-height: 200px;
+}
+
+.moduleLibraryHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.moduleLibraryHeader .sectionTitle {
+  margin-bottom: 0;
+}
+
+.compactButton,
+.moduleAddButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 30px;
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  color: #213140;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.compactButton {
+  padding: 0 9px;
+  font-size: 12px;
+}
+
+.moduleAddButton {
+  width: 30px;
+  padding: 0;
+}
+
+.compactButton:hover,
+.moduleAddButton:hover {
+  border-color: var(--blue);
+  color: var(--blue);
+}
+
+.libraryMessage {
+  margin-bottom: 9px;
+  padding: 7px 8px;
+  border: 1px solid rgba(0, 125, 118, 0.18);
+  border-radius: 7px;
+  color: var(--teal);
+  background: rgba(0, 125, 118, 0.07);
+  font-size: 12px;
+}
+
+.moduleCatalog {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.moduleCatalogItem {
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-strong);
+}
+
+.moduleCatalogTitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.moduleCatalogTitle strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #13202c;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.moduleCatalogMeta {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.moduleStats {
+  display: flex;
+  gap: 7px;
+  margin-top: 8px;
+}
+
+.moduleStats span,
+.modulePreview span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  border-radius: 5px;
+  font-size: 10px;
+}
+
+.moduleStats span {
+  padding: 0 6px;
+  color: var(--blue);
+  background: rgba(46, 111, 189, 0.08);
+}
+
+.modulePreview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.modulePreview span {
+  max-width: 86px;
+  padding: 0 6px;
+  color: #455565;
+  background: #f0f3f6;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .diagnosticsPanel {
