@@ -38,7 +38,7 @@ button {
 
 .appShell {
   display: grid;
-  grid-template-columns: 320px minmax(520px, 1fr) 318px;
+  grid-template-columns: 360px minmax(520px, 1fr) 318px;
   height: 100%;
   min-height: 680px;
   overflow: hidden;
@@ -48,13 +48,19 @@ button {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  min-height: 0;
   padding: 14px;
   background: #f7f9fb;
   border-color: var(--line);
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
 }
 
 .leftPanel {
+  display: grid;
+  grid-template-rows: auto auto minmax(260px, 1fr) auto minmax(110px, 0.45fr);
+  align-content: stretch;
   border-right: 1px solid var(--line);
 }
 
@@ -63,6 +69,7 @@ button {
 }
 
 .panelSection {
+  min-width: 0;
   width: 100%;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -316,22 +323,26 @@ button {
 }
 
 .interfacePanel {
-  min-height: 260px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .connectionModes {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 7px;
   margin-bottom: 12px;
 }
 
 .connectionMode {
   display: grid;
-  grid-template-columns: 18px minmax(0, 1fr) auto;
+  grid-template-columns: 18px minmax(0, 1fr);
+  grid-template-rows: auto auto;
   align-items: center;
   gap: 8px;
-  min-height: 32px;
+  min-height: 58px;
   padding: 6px 8px;
   border: 1px solid var(--line);
   border-radius: 7px;
@@ -339,6 +350,7 @@ button {
 }
 
 .connectionMode svg {
+  grid-row: span 2;
   color: var(--teal);
 }
 
@@ -352,8 +364,9 @@ button {
 }
 
 .connectionMode strong {
+  grid-column: 2;
   min-width: 24px;
-  text-align: right;
+  text-align: left;
   color: var(--blue);
   font-size: 12px;
 }
@@ -412,6 +425,19 @@ button {
   display: flex;
   flex-direction: column;
   gap: 7px;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 2px;
+}
+
+.topSignalList {
+  max-height: 118px;
+}
+
+.interfaceModuleList {
+  flex: 1;
+  max-height: none;
 }
 
 .topSignalItem {
@@ -987,11 +1013,30 @@ button {
 
 @media (max-width: 1180px) {
   .appShell {
-    grid-template-columns: 250px minmax(480px, 1fr);
+    grid-template-columns: 320px minmax(480px, 1fr);
   }
 
   .rightPanel {
     display: none;
+  }
+
+  .connectionModes {
+    grid-template-columns: 1fr;
+  }
+
+  .connectionMode {
+    grid-template-columns: 18px minmax(0, 1fr) auto;
+    grid-template-rows: auto;
+    min-height: 32px;
+  }
+
+  .connectionMode svg {
+    grid-row: auto;
+  }
+
+  .connectionMode strong {
+    grid-column: auto;
+    text-align: right;
   }
 }
 
@@ -1005,6 +1050,14 @@ button {
   .sidePanel {
     border-right: 0;
     border-bottom: 1px solid var(--line);
+  }
+
+  .leftPanel {
+    display: flex;
+  }
+
+  .interfacePanel {
+    min-height: 260px;
   }
 
   .workspace {
