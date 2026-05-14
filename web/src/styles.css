@@ -315,6 +315,217 @@ button {
   white-space: nowrap;
 }
 
+.interfacePanel {
+  min-height: 260px;
+}
+
+.connectionModes {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 7px;
+  margin-bottom: 12px;
+}
+
+.connectionMode {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--panel-strong);
+}
+
+.connectionMode svg {
+  color: var(--teal);
+}
+
+.connectionMode span {
+  min-width: 0;
+  overflow: hidden;
+  color: #334252;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.connectionMode strong {
+  min-width: 24px;
+  text-align: right;
+  color: var(--blue);
+  font-size: 12px;
+}
+
+.interfaceSubhead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 11px 0 8px;
+  color: #35414f;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.interfaceSubhead strong {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.miniActions {
+  display: flex;
+  gap: 5px;
+}
+
+.miniActions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 27px;
+  height: 27px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  color: #304052;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.miniActions button:hover {
+  border-color: var(--blue);
+  color: var(--blue);
+}
+
+.compactEmpty {
+  display: grid;
+  place-items: center;
+  min-height: 42px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 7px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.topSignalList,
+.interfaceModuleList {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.topSignalItem {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 42px 48px;
+  align-items: center;
+  gap: 7px;
+  min-height: 31px;
+  padding: 5px 7px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.topSignalItem:hover {
+  border-color: rgba(0, 125, 118, 0.38);
+}
+
+.topSignalItem span,
+.interfaceModuleName span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topSignalItem span {
+  color: #152432;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.topSignalItem small {
+  color: var(--teal);
+  font-size: 11px;
+}
+
+.topSignalItem strong {
+  color: var(--muted);
+  font-size: 11px;
+  text-align: right;
+}
+
+.interfaceModuleItem {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 31px;
+  gap: 7px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.interfaceModuleName {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  text-align: left;
+  background: transparent;
+  cursor: pointer;
+}
+
+.interfaceModuleName span {
+  color: #13202c;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.interfaceModuleName small {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.interfaceToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 31px;
+  height: 31px;
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  color: var(--muted);
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.interfaceToggle.active {
+  color: var(--blue);
+  border-color: rgba(46, 111, 189, 0.32);
+  background: rgba(46, 111, 189, 0.08);
+}
+
+.interfacePortPreview {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 6px;
+}
+
+.interfacePortPreview span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 21px;
+  padding: 0 6px;
+  border-radius: 5px;
+  color: #455565;
+  background: #f0f3f6;
+  font-size: 10px;
+}
+
 .diagnosticsPanel {
   flex: 1;
   min-height: 160px;
@@ -521,6 +732,10 @@ button {
   min-height: 150px;
 }
 
+.moduleNode.collapsedInterface {
+  min-height: 104px;
+}
+
 .moduleNode.selected,
 .signalNode.selected {
   outline: 2px solid rgba(46, 111, 189, 0.35);
@@ -609,6 +824,39 @@ button {
 }
 
 .portHandle {
+  width: 9px;
+  height: 9px;
+  border: 2px solid #ffffff;
+  background: var(--blue);
+}
+
+.interfaceCollapsedBody {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 45px;
+  margin: 8px 10px 12px;
+  padding: 8px 10px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 7px;
+  color: var(--muted);
+  background: #f5f8fa;
+}
+
+.interfaceCollapsedBody span {
+  color: #334252;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.interfaceCollapsedBody small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.collapsedPortHandle {
   width: 9px;
   height: 9px;
   border: 2px solid #ffffff;

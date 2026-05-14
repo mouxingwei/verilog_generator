@@ -37,6 +37,8 @@ The GUI can import Verilog files into a browser-side module library. Imported mo
 
 The editor can also add signal nodes, connect module ports to signal nodes, move nodes on the canvas, and export the edited React Flow JSON for later processing.
 
+The GUI supports three connection workflows: importing connections from the diagram-generated graph, directly dragging wires on the canvas, and using the interface panel to review top-level I/O signals plus selected submodule interfaces before dragging connections on the canvas.
+
 ```powershell
 $env:PYTHONPATH='src'
 python -m verilog_generator.cli build `

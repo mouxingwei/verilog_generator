@@ -26,6 +26,8 @@ import {
   FileCode2,
   FileJson,
   GitBranch,
+  Eye,
+  EyeOff,
   Library,
   Maximize2,
   Plus,
@@ -77,6 +79,7 @@ export default function App() {
   const [selection, setSelection] = useState<Selection>(null);
   const [moduleLibrary, setModuleLibrary] = useState<ImportedVerilogModule[]>([]);
   const [moduleImportMessage, setModuleImportMessage] = useState("");
+  const [hiddenInterfaceIds, setHiddenInterfaceIds] = useState<Set<string>>(() => new Set());
 
   const loadDefaultGraph = useCallback(async () => {
     setStatus("loading");
@@ -102,7 +105,23 @@ export default function App() {
     void loadDefaultGraph();
   }, [loadDefaultGraph]);
 
-  const nodes = useMemo(() => graph.nodes.map(normalizeNode), [graph.nodes]);
+  const nodes = useMemo(
+    () =>
+      graph.nodes.map((node) => {
+        const normalized = normalizeNode(node);
+        if (node.type !== "moduleInstance") {
+          return normalized;
+        }
+        return {
+          ...normalized,
+          data: {
+            ...(normalized.data ?? {}),
+            showInterface: !hiddenInterfaceIds.has(node.id)
+          }
+        };
+      }),
+    [graph.nodes, hiddenInterfaceIds]
+  );
   const edges = useMemo(() => graph.edges.map(normalizeEdge), [graph.edges]);
 
   const onNodesChange = useCallback((changes: NodeChange[]) => {
@@ -126,6 +145,33 @@ export default function App() {
   const onEdgeClick = useCallback((_: unknown, edge: Edge) => {
     setSelection({ kind: "edge", item: edge });
   }, []);
+
+  const selectNodeById = useCallback((nodeId: string) => {
+    const node = graph.nodes.find((item) => item.id === nodeId);
+    if (node) {
+      setSelection({ kind: "node", item: node });
+    }
+  }, [graph.nodes]);
+
+  const toggleInterfaceVisible = useCallback((nodeId: string) => {
+    setHiddenInterfaceIds((previous) => {
+      const next = new Set(previous);
+      if (next.has(nodeId)) {
+        next.delete(nodeId);
+      } else {
+        next.add(nodeId);
+      }
+      return next;
+    });
+  }, []);
+
+  const showAllInterfaces = useCallback(() => {
+    setHiddenInterfaceIds(new Set());
+  }, []);
+
+  const hideAllInterfaces = useCallback(() => {
+    setHiddenInterfaceIds(new Set(graph.nodes.filter((node) => node.type === "moduleInstance").map((node) => node.id)));
+  }, [graph.nodes]);
 
   const loadLocalGraphFile = useCallback(async (file: File) => {
     setStatus("loading");
@@ -254,6 +300,15 @@ export default function App() {
       <aside className="sidePanel leftPanel">
         <BrandBlock status={status} sourceName={sourceName} error={error} />
         <MetricGrid graph={graph} moduleLibrary={moduleLibrary} />
+        <InterfaceConnectionPanel
+          nodes={graph.nodes}
+          edges={graph.edges}
+          hiddenInterfaceIds={hiddenInterfaceIds}
+          onSelectNode={selectNodeById}
+          onToggleInterface={toggleInterfaceVisible}
+          onShowAll={showAllInterfaces}
+          onHideAll={hideAllInterfaces}
+        />
         <ModuleLibrary
           modules={moduleLibrary}
           importMessage={moduleImportMessage}
@@ -406,6 +461,115 @@ function MetricGrid({ graph, moduleLibrary }: { graph: GraphPayload; moduleLibra
   );
 }
 
+function InterfaceConnectionPanel({
+  nodes,
+  edges,
+  hiddenInterfaceIds,
+  onSelectNode,
+  onToggleInterface,
+  onShowAll,
+  onHideAll
+}: {
+  nodes: Node[];
+  edges: Edge[];
+  hiddenInterfaceIds: Set<string>;
+  onSelectNode: (nodeId: string) => void;
+  onToggleInterface: (nodeId: string) => void;
+  onShowAll: () => void;
+  onHideAll: () => void;
+}) {
+  const moduleNodes = nodes.filter((node) => node.type === "moduleInstance");
+  const topSignals = nodes.filter((node) => node.type === "signalNet" && isTopPortSignal(node));
+  const importedEdges = edges.filter((edge) => !(edge.data as any)?.editable).length;
+  const editedEdges = edges.length - importedEdges;
+
+  return (
+    <section className="panelSection interfacePanel">
+      <div className="sectionTitle">接口连线</div>
+      <div className="connectionModes">
+        <div className="connectionMode">
+          <FileJson size={15} />
+          <span>框图导入</span>
+          <strong>{importedEdges}</strong>
+        </div>
+        <div className="connectionMode">
+          <Waypoints size={15} />
+          <span>画布拖线</span>
+          <strong>{editedEdges}</strong>
+        </div>
+        <div className="connectionMode">
+          <GitBranch size={15} />
+          <span>接口视图</span>
+          <strong>{moduleNodes.length}</strong>
+        </div>
+      </div>
+
+      <div className="interfaceSubhead">
+        <span>顶层输入输出</span>
+        <strong>{topSignals.length}</strong>
+      </div>
+      {topSignals.length === 0 ? (
+        <div className="compactEmpty">暂无顶层信号</div>
+      ) : (
+        <div className="topSignalList">
+          {topSignals.map((node) => {
+            const data = (node.data ?? {}) as Record<string, any>;
+            return (
+              <button className="topSignalItem" key={node.id} onClick={() => onSelectNode(node.id)}>
+                <span>{String(data.signal ?? data.label ?? node.id)}</span>
+                <small>{formatDirection(String(data.port_direction ?? ""))}</small>
+                <strong>{formatWidth(data)}</strong>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="interfaceSubhead">
+        <span>子模块接口</span>
+        <div className="miniActions">
+          <button onClick={onShowAll} title="显示全部接口">
+            <Eye size={14} />
+          </button>
+          <button onClick={onHideAll} title="隐藏全部接口">
+            <EyeOff size={14} />
+          </button>
+        </div>
+      </div>
+      {moduleNodes.length === 0 ? (
+        <div className="compactEmpty">暂无子模块</div>
+      ) : (
+        <div className="interfaceModuleList">
+          {moduleNodes.map((node) => {
+            const data = (node.data ?? {}) as Record<string, any>;
+            const ports = Array.isArray(data.ports) ? data.ports : [];
+            const visible = !hiddenInterfaceIds.has(node.id);
+            return (
+              <div className="interfaceModuleItem" key={node.id}>
+                <button className="interfaceModuleName" onClick={() => onSelectNode(node.id)}>
+                  <span>{String(data.label ?? node.id)}</span>
+                  <small>{String(data.module ?? "")}</small>
+                </button>
+                <button
+                  className={`interfaceToggle ${visible ? "active" : ""}`}
+                  onClick={() => onToggleInterface(node.id)}
+                  title={visible ? "隐藏接口" : "显示接口"}
+                >
+                  {visible ? <Eye size={14} /> : <EyeOff size={14} />}
+                </button>
+                <div className="interfacePortPreview">
+                  <span>{ports.filter((port: ImportedVerilogPort) => port.direction !== "output").length} 输入</span>
+                  <span>{ports.filter((port: ImportedVerilogPort) => port.direction === "output").length} 输出</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+
 function ModuleLibrary({
   modules,
   importMessage,
@@ -554,26 +718,68 @@ function ModuleInstanceNode({ data, selected }: any) {
   const ports = Array.isArray(data.ports) ? data.ports : [];
   const inputPorts = ports.filter((port: ImportedVerilogPort) => port.direction !== "output");
   const outputPorts = ports.filter((port: ImportedVerilogPort) => port.direction === "output");
+  const showInterface = data.showInterface !== false;
   return (
-    <div className={`moduleNode ${selected ? "selected" : ""}`}>
+    <div className={`moduleNode ${selected ? "selected" : ""} ${showInterface ? "" : "collapsedInterface"}`}>
       <div className="moduleHeader">
         <span>{data.label}</span>
         <strong>{data.module}</strong>
       </div>
       <div className="moduleMeta">{data.hierarchy}</div>
-      <div className="portColumns">
-        <div className="portStack">
-          {inputPorts.map((port: ImportedVerilogPort) => (
-            <PortRow port={port} key={`in-${port.name}`} side="left" />
-          ))}
+      {showInterface ? (
+        <div className="portColumns">
+          <div className="portStack">
+            {inputPorts.map((port: ImportedVerilogPort) => (
+              <PortRow port={port} key={`in-${port.name}`} side="left" />
+            ))}
+          </div>
+          <div className="portStack right">
+            {outputPorts.map((port: ImportedVerilogPort) => (
+              <PortRow port={port} key={`out-${port.name}`} side="right" />
+            ))}
+          </div>
         </div>
-        <div className="portStack right">
-          {outputPorts.map((port: ImportedVerilogPort) => (
-            <PortRow port={port} key={`out-${port.name}`} side="right" />
-          ))}
+      ) : (
+        <div className="interfaceCollapsedBody">
+          <span>接口已折叠</span>
+          <small>{ports.length} 个端口</small>
+          <CollapsedPortHandles inputPorts={inputPorts} outputPorts={outputPorts} />
         </div>
-      </div>
+      )}
     </div>
+  );
+}
+
+function CollapsedPortHandles({
+  inputPorts,
+  outputPorts
+}: {
+  inputPorts: ImportedVerilogPort[];
+  outputPorts: ImportedVerilogPort[];
+}) {
+  return (
+    <>
+      {inputPorts.map((port, index) => (
+        <Handle
+          id={port.name}
+          key={`collapsed-in-${port.name}`}
+          type="target"
+          position={Position.Left}
+          className="collapsedPortHandle"
+          style={{ top: `${collapsedHandleTop(index, inputPorts.length)}%` }}
+        />
+      ))}
+      {outputPorts.map((port, index) => (
+        <Handle
+          id={port.name}
+          key={`collapsed-out-${port.name}`}
+          type="source"
+          position={Position.Right}
+          className="collapsedPortHandle"
+          style={{ top: `${collapsedHandleTop(index, outputPorts.length)}%` }}
+        />
+      ))}
+    </>
   );
 }
 
@@ -849,6 +1055,18 @@ function formatWidth(port: { width?: number; width_expr?: string }) {
     return port.width_expr;
   }
   return "1b";
+}
+
+function isTopPortSignal(node: Node) {
+  const direction = String(((node.data ?? {}) as Record<string, unknown>).port_direction ?? "");
+  return direction === "input" || direction === "output" || direction === "inout";
+}
+
+function collapsedHandleTop(index: number, total: number) {
+  if (total <= 1) {
+    return 58;
+  }
+  return 34 + (index * 46) / Math.max(1, total - 1);
 }
 
 function formatDirection(direction: string) {
